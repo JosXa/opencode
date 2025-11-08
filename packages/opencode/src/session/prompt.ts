@@ -1314,6 +1314,18 @@ export namespace SessionPrompt {
           `,
         ],
       },
+      pwsh: {
+        args: ["-NoProfile", "-Command", input.command],
+      },
+      "pwsh.exe": {
+        args: ["-NoProfile", "-Command", input.command],
+      },
+      powershell: {
+        args: ["-NoProfile", "-Command", input.command],
+      },
+      "powershell.exe": {
+        args: ["-NoProfile", "-Command", input.command],
+      },
       // Fallback: any shell that doesn't match those above
       "": {
         args: ["-c", "-l", `${input.command}`],

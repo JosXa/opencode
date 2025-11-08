@@ -229,3 +229,75 @@ test("config shell overrides when specified in later file", async () => {
     },
   })
 })
+
+test("handles PowerShell configuration", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          shell: "pwsh",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("pwsh")
+      // Verify basename extraction would work correctly
+      const shellName = path.basename(config.shell!)
+      expect(shellName).toBe("pwsh")
+    },
+  })
+})
+
+test("handles PowerShell with .exe extension", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          shell: "powershell.exe",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("powershell.exe")
+      // Verify basename extraction would work correctly
+      const shellName = path.basename(config.shell!)
+      expect(shellName).toBe("powershell.exe")
+    },
+  })
+})
+
+test("handles PowerShell with full Windows path", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          shell: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
+      // Verify basename extraction would work correctly
+      const shellName = path.basename(config.shell!)
+      expect(shellName).toBe("powershell.exe")
+    },
+  })
+})

@@ -457,7 +457,7 @@ export namespace Config {
         .string()
         .optional()
         .describe(
-          "Shell to use for command execution (e.g., 'bash', 'zsh', 'fish', 'nu', or full path like '/bin/bash')",
+          "Shell to use for command execution (e.g., 'bash', 'zsh', 'fish', 'nu', 'pwsh', 'powershell', or full path like '/bin/bash' or 'C:\\Program Files\\PowerShell\\7\\pwsh.exe')",
         ),
       mode: z
         .object({

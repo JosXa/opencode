@@ -10,6 +10,8 @@ import { Wildcard } from "../util/wildcard"
 import { $ } from "bun"
 import { Instance } from "../project/instance"
 import { Agent } from "../agent/agent"
+import { Config } from "../config/config"
+import path from "path"
 
 const MAX_OUTPUT_LENGTH = 30_000
 const DEFAULT_TIMEOUT = 1 * 60 * 1000
@@ -146,8 +148,60 @@ export const BashTool = Tool.define("bash", {
       })
     }
 
-    const proc = spawn(params.command, {
-      shell: true,
+    const config = await Config.get()
+    const shell = config.shell ?? process.env["SHELL"] ?? "bash"
+    const shellName = path.basename(shell)
+
+    const invocations: Record<string, { args: string[] }> = {
+      nu: {
+        args: ["-c", params.command],
+      },
+      fish: {
+        args: ["-c", params.command],
+      },
+      zsh: {
+        args: [
+          "-c",
+          "-l",
+          `
+            [[ -f ~/.zshenv ]] && source ~/.zshenv >/dev/null 2>&1 || true
+            [[ -f "\${ZDOTDIR:-$HOME}/.zshrc" ]] && source "\${ZDOTDIR:-$HOME}/.zshrc" >/dev/null 2>&1 || true
+            ${params.command}
+          `,
+        ],
+      },
+      bash: {
+        args: [
+          "-c",
+          "-l",
+          `
+            [[ -f ~/.bashrc ]] && source ~/.bashrc >/dev/null 2>&1 || true
+            ${params.command}
+          `,
+        ],
+      },
+      pwsh: {
+        args: ["-NoProfile", "-Command", params.command],
+      },
+      "pwsh.exe": {
+        args: ["-NoProfile", "-Command", params.command],
+      },
+      powershell: {
+        args: ["-NoProfile", "-Command", params.command],
+      },
+      "powershell.exe": {
+        args: ["-NoProfile", "-Command", params.command],
+      },
+      // Fallback: any shell that doesn't match those above
+      "": {
+        args: ["-c", "-l", `${params.command}`],
+      },
+    }
+
+    const matchingInvocation = invocations[shellName] ?? invocations[""]
+    const args = matchingInvocation?.args
+
+    const proc = spawn(shell, args, {
       cwd: Instance.directory,
       stdio: ["ignore", "pipe", "pipe"],
       detached: process.platform !== "win32",

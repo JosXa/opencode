@@ -453,6 +453,12 @@ export namespace Config {
         .string()
         .optional()
         .describe("Custom username to display in conversations instead of system username"),
+      shell: z
+        .string()
+        .optional()
+        .describe(
+          "Shell to use for command execution (e.g., 'bash', 'zsh', 'fish', 'nu', or full path like '/bin/bash')",
+        ),
       mode: z
         .object({
           build: Agent.optional(),

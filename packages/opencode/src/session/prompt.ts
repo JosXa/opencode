@@ -9,6 +9,7 @@ import { SessionRevert } from "./revert"
 import { Session } from "."
 import { Agent } from "../agent/agent"
 import { Provider } from "../provider/provider"
+import { Config } from "../config/config"
 import {
   generateText,
   streamText,
@@ -1281,7 +1282,8 @@ export namespace SessionPrompt {
       },
     }
     await Session.updatePart(part)
-    const shell = process.env["SHELL"] ?? "bash"
+    const config = await Config.get()
+    const shell = config.shell ?? process.env["SHELL"] ?? "bash"
     const shellName = path.basename(shell)
 
     const invocations: Record<string, { args: string[] }> = {

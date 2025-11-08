@@ -350,3 +350,88 @@ test("gets config directories", async () => {
     },
   })
 })
+
+test("loads shell config from JSON file", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          shell: "fish",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("fish")
+    },
+  })
+})
+
+test("loads shell config from JSONC file", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.jsonc"),
+        `{
+        // This is a comment
+        "$schema": "https://opencode.ai/config.json",
+        "shell": "zsh"
+      }`,
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("zsh")
+    },
+  })
+})
+
+test("loads shell config with full path", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          shell: "/usr/bin/zsh",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("/usr/bin/zsh")
+    },
+  })
+})
+
+test("loads shell config with Windows path", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          shell: "C:\\Program Files\\Git\\bin\\bash.exe",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.shell).toBe("C:\\Program Files\\Git\\bin\\bash.exe")
+    },
+  })
+})

@@ -866,6 +866,9 @@ export function Prompt(props: PromptProps) {
       const example = shell()[store.placeholder % shell().length]
       return `Run a command... "${example}"`
     }
+    const agent = local.agent.current()
+    const hint = (agent.description || agent.prompt || "").trim()
+    if (agent.name !== "build" && hint) return hint.replace(/\s+/g, " ")
     if (!list().length) return undefined
     return `Ask anything... "${list()[store.placeholder % list().length]}"`
   })
@@ -934,7 +937,7 @@ export function Prompt(props: PromptProps) {
             flexGrow={1}
           >
             <textarea
-              placeholder={placeholderText()}
+              placeholder={props.sessionID ? undefined : placeholderText()}
               placeholderColor={theme.textMuted}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}

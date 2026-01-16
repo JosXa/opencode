@@ -424,7 +424,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (!messages) return false
     return messages.some((m) => m.role === "user")
   })
-
   const history = props.history ?? createPersistedPromptInputHistory()
 
   const suggest = createMemo(() => !hasUserPrompt())
@@ -438,6 +437,25 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       t: (key, params) => language.t(key as Parameters<typeof language.t>[0], params as never),
     }),
   )
+
+  const placeholderText = createMemo(() => {
+    const agent = local.agent.current()
+    const hint = (agent?.description || agent?.prompt || "").trim()
+    if (agent?.name === "build" || !hint) {
+      // TODO: Padding workaround for rendering bug where ghost characters from previous
+      // placeholder remain visible when switching to shorter text. Browser doesn't properly
+      // clear cached text layout with truncate/ellipsis CSS. Proper fix would be to force
+      // element recreation or use a different rendering approach.
+      return placeholder().padEnd(70, " ")
+    }
+    return hint.replace(/\s+/g, " ").padEnd(70, " ")
+  })
+
+  const shouldRotatePlaceholder = createMemo(() => {
+    const agent = local.agent.current()
+    const hint = (agent?.description || agent?.prompt || "").trim()
+    return agent?.name === "build" || !hint
+  })
 
   const historyComments = () => {
     const byID = new Map(comments.all().map((item) => [`${item.file}\n${item.id}`, item] as const))
@@ -632,6 +650,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     props.controls.session.id
     if (props.controls.session.id) return
     if (!suggest()) return
+    if (!shouldRotatePlaceholder()) return
     const interval = setInterval(() => {
       setStore("placeholder", (prev) => (prev + 1) % EXAMPLES.length)
     }, 6500)
@@ -1385,7 +1404,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const designPlaceholder = () => {
     if (store.mode === "shell") return placeholder()
-    return "Ask anything, / for commands, @ for context..."
+    return placeholderText()
   }
 
   const modelControlState = createMemo<ComposerModelControlState>(() => ({

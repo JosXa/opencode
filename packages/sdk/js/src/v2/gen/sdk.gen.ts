@@ -254,6 +254,18 @@ export class Config extends HeyApiClient {
       },
     })
   }
+
+  /**
+   * Reload configuration
+   *
+   * Reload all configuration files (opencode.jsonc, .opencode/) and plugins, and restart all instances without restarting the TUI.
+   */
+  public reload<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<{ success: boolean }, unknown, ThrowOnError>({
+      url: "/config/reload",
+      ...options,
+    })
+  }
 }
 
 export class Global extends HeyApiClient {
@@ -714,6 +726,18 @@ export class Config2 extends HeyApiClient {
       url: "/config/providers",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Reload configuration
+   *
+   * Reload all configuration files (opencode.jsonc, .opencode/) and plugins, and restart all instances without restarting the TUI.
+   */
+  public reload<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).post<{ success: boolean }, unknown, ThrowOnError>({
+      url: "/config/reload",
+      ...options,
     })
   }
 }

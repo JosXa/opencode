@@ -14,8 +14,25 @@ import { type SystemError } from "bun"
 import type { Provider } from "@/provider/provider"
 
 export namespace MessageV2 {
+  export const ABORT_REASON = {
+    CONFIG_RELOAD: "config-reload",
+    USER_INTERRUPT: "user-interrupt",
+  } as const
+  export type AbortReason = (typeof ABORT_REASON)[keyof typeof ABORT_REASON]
+
+  const abortReasons = new Set<string>(Object.values(ABORT_REASON))
+  export function isAbortReason(value: unknown): value is AbortReason {
+    return typeof value === "string" && abortReasons.has(value)
+  }
+
   export const OutputLengthError = NamedError.create("MessageOutputLengthError", z.object({}))
-  export const AbortedError = NamedError.create("MessageAbortedError", z.object({ message: z.string() }))
+  export const AbortedError = NamedError.create(
+    "MessageAbortedError",
+    z.object({
+      message: z.string(),
+      reason: z.enum([ABORT_REASON.CONFIG_RELOAD, ABORT_REASON.USER_INTERRUPT]).optional(),
+    }),
+  )
   export const AuthError = NamedError.create(
     "ProviderAuthError",
     z.object({
@@ -665,14 +682,36 @@ export namespace MessageV2 {
     return status === 404 || e.isRetryable
   }
 
-  export function fromError(e: unknown, ctx: { providerID: string }) {
+  export function fromError(e: unknown, ctx: { providerID: string; abortSignal?: AbortSignal }) {
     switch (true) {
-      case e instanceof DOMException && e.name === "AbortError":
+      case e instanceof DOMException && e.name === "AbortError": {
+        // The DOMException doesn't carry the abort reason - we need to get it from the signal
+        const signalReason = ctx.abortSignal?.reason
         return new MessageV2.AbortedError(
-          { message: e.message },
           {
-            cause: e,
+            message: e.message,
+            reason: isAbortReason(signalReason) ? signalReason : undefined,
           },
+          { cause: e },
+        ).toObject()
+      }
+      case isAbortReason(e):
+        // When AbortController.abort(reason) is called with an AbortReason,
+        // the thrown error IS the reason itself
+        return new MessageV2.AbortedError(
+          {
+            message: "The operation was aborted",
+            reason: e,
+          },
+          { cause: e },
+        ).toObject()
+      case typeof e === "string":
+        // Fallback for unknown string errors (e.g. from AI SDK or other sources)
+        return new MessageV2.AbortedError(
+          {
+            message: e,
+          },
+          { cause: e },
         ).toObject()
       case MessageV2.OutputLengthError.isInstance(e):
         return e

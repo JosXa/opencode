@@ -583,22 +583,31 @@ export function Prompt(props: PromptProps) {
       const [command, ...firstLineArgs] = firstLine.split(" ")
       const restOfInput = firstLineEnd === -1 ? "" : inputText.slice(firstLineEnd + 1)
       const args = firstLineArgs.join(" ") + (restOfInput ? "\n" + restOfInput : "")
+      const commandName = command.slice(1)
 
-      sdk.client.session.command({
-        sessionID,
-        command: command.slice(1),
-        arguments: args,
-        agent: local.agent.current().name,
-        model: `${selectedModel.providerID}/${selectedModel.modelID}`,
-        messageID,
-        variant,
-        parts: nonTextParts
-          .filter((x) => x.type === "file")
-          .map((x) => ({
-            id: Identifier.ascending("part"),
-            ...x,
-          })),
-      })
+      // Handle reload command specially - it doesn't need a session
+      if (commandName === "reload") {
+        sdk.client.config
+          .reload()
+          .then(() => toast.show({ variant: "info", message: "Configuration reloaded" }))
+          .catch(() => toast.error("Failed to reload configuration"))
+      } else {
+        sdk.client.session.command({
+          sessionID,
+          command: commandName,
+          arguments: args,
+          agent: local.agent.current().name,
+          model: `${selectedModel.providerID}/${selectedModel.modelID}`,
+          messageID,
+          variant,
+          parts: nonTextParts
+            .filter((x) => x.type === "file")
+            .map((x) => ({
+              id: Identifier.ascending("part"),
+              ...x,
+            })),
+        })
+      }
     } else {
       sdk.client.session
         .prompt({

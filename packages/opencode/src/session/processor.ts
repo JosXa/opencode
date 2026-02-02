@@ -150,7 +150,7 @@ export namespace SessionProcessor {
                           p.type === "tool" &&
                           p.tool === value.toolName &&
                           p.state.status !== "pending" &&
-                          JSON.stringify(p.state.input) === JSON.stringify(value.input),
+                          JSON.stringify(p.state.input) === JSON.stringify(value.input)
                       )
                     ) {
                       const agent = await Agent.get(input.assistantMessage.agent)
@@ -178,7 +178,7 @@ export namespace SessionProcessor {
                         id: Identifier.ascending("part"),
                         messageID: match.messageID,
                         sessionID: match.sessionID,
-                      }),
+                      })
                     )
                     await Session.updatePart({
                       ...match,
@@ -320,7 +320,7 @@ export namespace SessionProcessor {
                         messageID: input.assistantMessage.id,
                         partID: currentText.id,
                       },
-                      { text: currentText.text },
+                      { text: currentText.text }
                     )
                     currentText.text = textOutput.text
                     currentText.time = {
@@ -349,7 +349,7 @@ export namespace SessionProcessor {
               error: e,
               stack: JSON.stringify(e.stack),
             })
-            const error = MessageV2.fromError(e, { providerID: input.model.providerID })
+            const error = MessageV2.fromError(e, { providerID: input.model.providerID, abortSignal: input.abort })
             const retry = SessionRetry.retryable(error)
             if (retry !== undefined) {
               attempt++

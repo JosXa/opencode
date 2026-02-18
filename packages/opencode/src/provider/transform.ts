@@ -175,6 +175,9 @@ export namespace ProviderTransform {
     const system = msgs.filter((msg) => msg.role === "system").slice(0, 2)
     const final = msgs.filter((msg) => msg.role !== "system").slice(-2)
 
+    // GHE (GitHub Enterprise) endpoints don't support copilot_cache_control
+    const isGHE = model.api.url?.includes(".ghe.com") || model.api.url?.includes("copilot-api.")
+
     const providerOptions = {
       anthropic: {
         cacheControl: { type: "ephemeral" },
@@ -188,9 +191,13 @@ export namespace ProviderTransform {
       openaiCompatible: {
         cache_control: { type: "ephemeral" },
       },
-      copilot: {
-        copilot_cache_control: { type: "ephemeral" },
-      },
+      ...(isGHE
+        ? {}
+        : {
+            copilot: {
+              copilot_cache_control: { type: "ephemeral" },
+            },
+          }),
     }
 
     for (const msg of unique([...system, ...final])) {

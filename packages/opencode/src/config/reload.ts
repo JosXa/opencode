@@ -1,11 +1,14 @@
 import { Config } from "./config"
-import { Log } from "../util/log"
 import { GlobalBus } from "../bus/global"
 import { AppRuntime } from "../effect/app-runtime"
 import { disposeAllInstancesAndEmitGlobalDisposed } from "../server/global-lifecycle"
 
 export namespace ConfigReload {
-  const log = Log.create({ service: "config.reload" })
+  const log = {
+    debug: (message: string, metadata?: unknown) => console.debug("config.reload", message, metadata),
+    info: (message: string, metadata?: unknown) => console.info("config.reload", message, metadata),
+    error: (message: string, metadata?: unknown) => console.error("config.reload", message, metadata),
+  }
 
   export const Event = {
     Pending: { type: "config.reload.pending" },

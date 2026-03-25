@@ -61,9 +61,10 @@ import { TuiConfig } from "@/cli/cmd/tui/config/tui"
 import { createTuiApi, TuiPluginRuntime, type RouteMap } from "./plugin"
 import { FormatError, FormatUnknownError } from "@/cli/error"
 import { InputBuffer } from "@tui/util/input-buffer"
-import * as Log from "@/util/log"
 
-const log = Log.create({ service: "tui-app" })
+const log = {
+  info: (message: string, metadata?: unknown) => console.info("tui-app", message, metadata),
+}
 
 import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"

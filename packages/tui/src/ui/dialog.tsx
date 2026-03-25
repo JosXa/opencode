@@ -7,7 +7,7 @@ import { useToast } from "./toast"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { useBindings, useOpencodeModeStack } from "../keymap"
 import { useClipboard } from "../context/clipboard"
-import { useSync } from "@tui/context/sync"
+import { useSync } from "../context/sync"
 
 export function Dialog(
   props: ParentProps<{

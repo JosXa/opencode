@@ -103,6 +103,8 @@ export const {
       }
       formatter: FormatterStatus[]
       vcs: VcsInfo | undefined
+      reloadPending: boolean
+      reloading: boolean
     }>({
       provider_next: {
         all: [],
@@ -133,6 +135,8 @@ export const {
       mcp_resource: {},
       formatter: [],
       vcs: undefined,
+      reloadPending: false,
+      reloading: false,
     })
 
     const event = useEvent()
@@ -168,6 +172,14 @@ export const {
     event.subscribe((event, { workspace }) => {
       switch (event.type) {
         case "server.instance.disposed":
+          if (!store.reloading) {
+            void bootstrap()
+          }
+          break
+        case "server.connected":
+          if (store.reloading) {
+            setStore("reloading", false)
+          }
           void bootstrap()
           break
         case "permission.replied": {
@@ -423,6 +435,21 @@ export const {
           if (workspace === project.workspace.current()) {
             setStore("vcs", { branch: event.properties.branch })
           }
+          break
+        }
+
+        case "config.reload.pending": {
+          setStore("reloadPending", event.properties.pending)
+          break
+        }
+
+        case "config.reload.executing": {
+          setStore("reloading", event.properties.executing)
+          break
+        }
+
+        case "config.reload.done": {
+          setStore("reloading", false)
           break
         }
       }

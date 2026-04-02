@@ -1,4 +1,4 @@
-import { useRenderer, useTerminalDimensions } from "@opentui/solid"
+import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { batch, createContext, createEffect, onCleanup, Show, useContext, type JSX, type ParentProps } from "solid-js"
 import { useTheme } from "../context/theme"
 import { MouseButton, Renderable, RGBA } from "@opentui/core"
@@ -7,6 +7,7 @@ import { useToast } from "./toast"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { useBindings, useOpencodeModeStack } from "../keymap"
 import { useClipboard } from "../context/clipboard"
+import { useSync } from "@tui/context/sync"
 
 export function Dialog(
   props: ParentProps<{
@@ -181,6 +182,25 @@ export function DialogProvider(props: ParentProps) {
   const renderer = useRenderer()
   const toast = useToast()
   const clipboard = useClipboard()
+  const dimensions = useTerminalDimensions()
+  const { theme } = useTheme()
+  const sync = useSync()
+
+  useKeyboard((evt) => {
+    if (!sync.data.reloading) return
+    evt.preventDefault()
+    evt.stopPropagation()
+  })
+
+  // Show toast after the reload modal dismisses, never simultaneously.
+  let was = false
+  createEffect(() => {
+    const now = sync.data.reloading
+    if (was && !now) {
+      toast.show({ variant: "info", message: "Reloaded configuration" })
+    }
+    was = now
+  })
 
   function copySelection() {
     const text = renderer.getSelection()?.getSelectedText()
@@ -215,6 +235,29 @@ export function DialogProvider(props: ParentProps) {
           </Dialog>
         </Show>
       </box>
+      <Show when={sync.data.reloading}>
+        <box
+          width={dimensions().width}
+          height={dimensions().height}
+          backgroundColor={RGBA.fromInts(0, 0, 0, 150)}
+          position="absolute"
+          left={0}
+          top={0}
+          alignItems="center"
+          justifyContent="center"
+          zIndex={4000}
+        >
+          <box
+            backgroundColor={theme.backgroundPanel}
+            paddingLeft={4}
+            paddingRight={4}
+            paddingTop={2}
+            paddingBottom={2}
+          >
+            <text fg={theme.text}> Reloading configuration... </text>
+          </box>
+        </box>
+      </Show>
     </ctx.Provider>
   )
 }

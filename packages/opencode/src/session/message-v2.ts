@@ -51,6 +51,17 @@ interface FetchDecompressionError extends Error {
 export const SYNTHETIC_ATTACHMENT_PROMPT = "Attached media from tool result:"
 export { isMedia }
 
+export const ABORT_REASON = {
+  CONFIG_RELOAD: "config-reload",
+  USER_INTERRUPT: "user-interrupt",
+} as const
+export type AbortReason = (typeof ABORT_REASON)[keyof typeof ABORT_REASON]
+
+const abortReasons = new Set<string>(Object.values(ABORT_REASON))
+export function isAbortReason(value: unknown): value is AbortReason {
+  return typeof value === "string" && abortReasons.has(value)
+}
+
 function truncateToolOutput(text: string, maxChars?: number) {
   if (!maxChars || text.length <= maxChars) return text
   const omitted = text.length - maxChars
@@ -616,15 +627,23 @@ export function latest(msgs: WithParts[]) {
 
 export function fromError(
   e: unknown,
-  ctx: { providerID: ProviderV2.ID; aborted?: boolean },
+  ctx: { providerID: ProviderV2.ID; aborted?: boolean; reason?: AbortReason },
 ): NonNullable<Assistant["error"]> {
   switch (true) {
     case e instanceof DOMException && e.name === "AbortError":
       return new AbortedError(
-        { message: e.message },
+        { message: e.message, reason: ctx.reason },
         {
           cause: e,
         },
+      ).toObject()
+    case isAbortReason(e):
+      return new AbortedError(
+        {
+          message: "The operation was aborted",
+          reason: e,
+        },
+        { cause: e },
       ).toObject()
     case OutputLengthError.isInstance(e):
       return e
@@ -651,7 +670,7 @@ export function fromError(
       ).toObject()
     case e instanceof Error && (e as FetchDecompressionError).code === "ZlibError":
       if (ctx.aborted) {
-        return new AbortedError({ message: e.message }, { cause: e }).toObject()
+        return new AbortedError({ message: e.message, reason: ctx.reason }, { cause: e }).toObject()
       }
       return new APIError(
         {

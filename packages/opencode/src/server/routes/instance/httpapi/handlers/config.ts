@@ -1,4 +1,5 @@
 import { Config } from "@/config/config"
+import { ConfigReload } from "@/config/reload"
 import { Provider } from "@/provider/provider"
 import * as InstanceState from "@/effect/instance-state"
 import { Effect } from "effect"
@@ -29,6 +30,11 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       }
     })
 
-    return handlers.handle("get", get).handle("update", update).handle("providers", providers)
+    const reload = Effect.fn("ConfigHttpApi.reload")(function* () {
+      const result = yield* Effect.promise(() => ConfigReload.request())
+      return { success: true, immediate: result.immediate }
+    })
+
+    return handlers.handle("get", get).handle("update", update).handle("providers", providers).handle("reload", reload)
   }),
 )

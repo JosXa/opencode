@@ -92,7 +92,9 @@ export type Event =
   | EventServerConnected
   | EventGlobalDisposed
   | EventServerInstanceDisposed
-
+  | EventConfigReloadPending
+  | EventConfigReloadExecuting
+  | EventConfigReloadDone
 export type QuestionReplied = {
   sessionID: string
   requestID: string
@@ -2942,6 +2944,31 @@ export type EventServerInstanceDisposed = {
   type: "server.instance.disposed"
   properties: {
     directory: string
+    reason?: string
+  }
+}
+
+export type EventConfigReloadPending = {
+  id: string
+  type: "config.reload.pending"
+  properties: {
+    pending: boolean
+  }
+}
+
+export type EventConfigReloadExecuting = {
+  id: string
+  type: "config.reload.executing"
+  properties: {
+    executing: boolean
+  }
+}
+
+export type EventConfigReloadDone = {
+  id: string
+  type: "config.reload.done"
+  properties: {
+    [key: string]: unknown
   }
 }
 
@@ -5681,6 +5708,27 @@ export type ExperimentalConsoleSwitchOrgResponses = {
 export type ExperimentalConsoleSwitchOrgResponse =
   ExperimentalConsoleSwitchOrgResponses[keyof ExperimentalConsoleSwitchOrgResponses]
 
+export type ConfigReloadData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/config/reload"
+}
+
+export type ConfigReloadResponses = {
+  /**
+   * Configuration reloaded successfully
+   */
+  200: {
+    success: boolean
+    immediate: boolean
+  }
+}
+
+export type ConfigReloadResponse = ConfigReloadResponses[keyof ConfigReloadResponses]
 export type ToolListData = {
   body?: never
   path?: never

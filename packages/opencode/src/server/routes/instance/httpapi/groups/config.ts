@@ -6,6 +6,7 @@ import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
 import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
 import { described } from "./metadata"
+import { Schema } from "effect"
 
 const root = "/config"
 
@@ -43,6 +44,23 @@ export const ConfigApi = HttpApi.make("config")
             identifier: "config.providers",
             summary: "List config providers",
             description: "Get a list of all configured AI providers and their default models.",
+          }),
+        ),
+        HttpApiEndpoint.post("reload", `${root}/reload`, {
+          query: WorkspaceRoutingQuery,
+          success: described(
+            Schema.Struct({
+              success: Schema.Boolean,
+              immediate: Schema.Boolean,
+            }),
+            "Configuration reloaded successfully",
+          ),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "config.reload",
+            summary: "Reload configuration",
+            description:
+              "Reload all configuration files (opencode.jsonc, .opencode/) and plugins, and restart all instances without restarting the TUI.",
           }),
         ),
       )

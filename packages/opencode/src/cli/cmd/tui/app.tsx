@@ -773,6 +773,25 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         dialog.clear()
       },
     },
+    {
+      title: "Reload configuration",
+      value: "app.reload",
+      keybind: "app_reload",
+      slash: {
+        name: "reload",
+      },
+      onSelect: (dialog) => {
+        dialog.clear()
+        sdk.client.config
+          .reload()
+          .then((x) => {
+            if (!x.data?.immediate)
+              toast.show({ variant: "info", message: "Configuration reload queued" })
+          })
+          .catch(() => toast.error("Failed to reload configuration"))
+      },
+      category: "System",
+    },
   ])
 
   event.on(TuiEvent.CommandExecute.type, (evt) => {

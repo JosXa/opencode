@@ -44,10 +44,11 @@ function eventResponse(events: EventV2.Interface) {
         directory?: string
         payload: { id?: string; type?: string; properties?: unknown }
       }) => {
-        if (event.directory !== instance.directory || event.payload.type !== "server.instance.disposed") return
+        if (event.directory !== undefined && event.directory !== instance.directory) return
+        if (event.payload.type !== "server.instance.disposed" && !event.payload.type?.startsWith("config.reload.")) return
         Queue.offerUnsafe(queue, {
           id: event.payload.id ?? eventID(),
-          type: "server.instance.disposed",
+          type: event.payload.type,
           properties: event.payload.properties ?? {},
         })
       }

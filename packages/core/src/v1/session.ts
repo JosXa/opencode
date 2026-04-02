@@ -34,7 +34,10 @@ export const AuthError = NamedError.create("ProviderAuthError", {
   message: Schema.String,
 })
 
-export const AbortedError = NamedError.create("MessageAbortedError", { message: Schema.String })
+export const AbortedError = NamedError.create("MessageAbortedError", {
+  message: Schema.String,
+  reason: Schema.optional(Schema.String),
+})
 export const StructuredOutputError = NamedError.create("StructuredOutputError", {
   message: Schema.String,
   retries: NonNegativeInt,

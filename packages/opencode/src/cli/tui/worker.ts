@@ -13,9 +13,15 @@ import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecy
 
 Heap.start()
 
-// Subscribe to global events and forward them via RPC
+// Subscribe to global events and forward them via RPC.
+// Most Bus events already reach the TUI via the instance-scoped subscriber
+// in startEventStream(). GlobalBus-only events (like config.reload.done)
+// must be forwarded explicitly since no Bus subscriber will see them.
 GlobalBus.on("event", (event) => {
   Rpc.emit("global.event", event)
+  if (event.payload?.type === "config.reload.done") {
+    Rpc.emit("event", event.payload)
+  }
 })
 
 let server: Awaited<ReturnType<typeof Server.listen>> | undefined

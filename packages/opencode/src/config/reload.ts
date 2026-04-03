@@ -13,10 +13,15 @@ export namespace ConfigReload {
   } as const
 
   let pending = false
+  let resumeSessionID: string | undefined
   const active = new Set<string>()
 
   export function isPending() {
     return pending
+  }
+
+  export function setResumeSession(sessionID: string) {
+    resumeSessionID = sessionID
   }
 
   export function start(sessionID: string) {
@@ -65,7 +70,9 @@ export namespace ConfigReload {
     // Emit Done through GlobalBus so existing SSE subscriptions can observe it
     // even if config invalidation rebuilds instance-scoped services.
     await AppRuntime.runPromise(Config.Service.use((cfg) => cfg.invalidate()))
-    emit(Event.Done.type, {})
+    const sid = resumeSessionID
+    resumeSessionID = undefined
+    emit(Event.Done.type, { resumeSessionID: sid })
   }
 
   function emit(type: (typeof Event)[keyof typeof Event]["type"], properties: Record<string, unknown>) {

@@ -450,6 +450,22 @@ export const {
 
         case "config.reload.done": {
           setStore("reloading", false)
+          const resumeSessionID = event.properties.resumeSessionID as string | undefined
+          if (resumeSessionID) {
+            setTimeout(() => {
+              sdk.client.session
+                .prompt({
+                  sessionID: resumeSessionID,
+                  parts: [
+                    {
+                      type: "text",
+                      text: "Configuration has been reloaded successfully. Continue where you left off.",
+                    },
+                  ],
+                })
+                .catch(() => {})
+            }, 2000)
+          }
           break
         }
       }

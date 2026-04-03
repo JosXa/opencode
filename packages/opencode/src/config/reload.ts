@@ -20,10 +20,6 @@ export namespace ConfigReload {
     return pending
   }
 
-  export function setResumeSession(sessionID: string) {
-    resumeSessionID = sessionID
-  }
-
   export function start(sessionID: string) {
     active.add(sessionID)
   }
@@ -35,9 +31,16 @@ export namespace ConfigReload {
   /**
    * Request a config reload. If all sessions are idle, reloads immediately.
    * Otherwise queues the reload to fire when the last session goes idle.
-   * Returns true if reload was executed immediately, false if queued.
+   *
+   * @param options.resumeSessionID - If set, the TUI will auto-resume this
+   *   session after reload completes. Only the ReloadTool should set this.
    */
-  export async function request(): Promise<{ immediate: boolean }> {
+  export async function request(options?: { resumeSessionID?: string }): Promise<{ immediate: boolean }> {
+    // Only set resumeSessionID if explicitly provided (i.e. from ReloadTool).
+    // Slash command / command palette calls without it, ensuring no auto-resume.
+    if (options?.resumeSessionID) {
+      resumeSessionID = options.resumeSessionID
+    }
     if (active.size === 0) {
       await execute()
       return { immediate: true }

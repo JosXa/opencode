@@ -784,10 +784,6 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         dialog.clear()
         sdk.client.config
           .reload()
-          .then((x) => {
-            if (!x.data?.immediate)
-              toast.show({ variant: "info", message: "Configuration reload queued" })
-          })
           .catch(() => toast.error("Failed to reload configuration"))
       },
       category: "System",

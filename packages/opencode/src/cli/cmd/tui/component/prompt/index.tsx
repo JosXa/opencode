@@ -704,10 +704,6 @@ export function Prompt(props: PromptProps) {
       if (commandName === "reload") {
         sdk.client.config
           .reload()
-          .then((x) => {
-            if (!x.data?.immediate)
-              toast.show({ variant: "info", message: "Configuration reload queued" })
-          })
           .catch(() => toast.error("Failed to reload configuration"))
       } else {
         sdk.client.session.command({
@@ -932,7 +928,7 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <Show when={sync.data.reloadPending}>
-        <box flexDirection="row" flexShrink={0} paddingLeft={3} gap={1}>
+        <box flexDirection="row" flexShrink={0} paddingLeft={3} gap={1} marginBottom={1}>
           <text fg={theme.warning}>△</text>
           <text fg={theme.warning}>Configuration reload pending...</text>
         </box>

@@ -3,11 +3,7 @@ import { Tool } from "./tool"
 import { ConfigReload } from "@/config/reload"
 
 export const ReloadTool = Tool.define("reload_config", {
-  description:
-    "Reload OpenCode configuration after modifying config files (opencode.jsonc, .opencode/ files). " +
-    "After calling this tool, the configuration will reload once the current session goes idle. " +
-    "The conversation will automatically resume after the reload completes. " +
-    "You do NOT need to ask for permission to use this tool.",
+  description: "Reload OpenCode configuration files and plugins without restarting.",
   parameters: z.object({}),
   async execute(_params, ctx) {
     await ctx.ask({
@@ -17,14 +13,13 @@ export const ReloadTool = Tool.define("reload_config", {
       metadata: {},
     })
 
-    ConfigReload.setResumeSession(ctx.sessionID)
-    await ConfigReload.request()
+    await ConfigReload.request({ resumeSessionID: ctx.sessionID })
 
     return {
-      title: "Configuration reload requested",
+      title: "Configuration reload enqueued",
       output:
-        "Configuration reload has been requested. " +
-        "It will execute once this session goes idle, and the conversation will automatically resume afterward.",
+        "Reload enqueued. It will execute once this session goes idle. " +
+        "End your turn now so the reload can proceed. The conversation resumes automatically.",
       metadata: {},
     }
   },

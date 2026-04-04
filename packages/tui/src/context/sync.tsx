@@ -142,6 +142,9 @@ export const {
     const event = useEvent()
     const project = useProject()
     const sdk = useSDK()
+    /** Tracks the current bootstrap cycle from the worker's ConfigReload.
+     *  Sent back in the bootstrap-complete POST to reject stale calls. */
+    let bootstrapCycle = 0
 
     const fullSyncedSessions = new Set<string>()
     const syncingSessions = new Map<string, Promise<void>>()
@@ -177,8 +180,8 @@ export const {
           }
           break
         case "server.connected":
-          if (store.reloading) {
-            setStore("reloading", false)
+          if (event.properties.bootstrapCycle != null) {
+            bootstrapCycle = Number(event.properties.bootstrapCycle)
           }
           void bootstrap()
           break
@@ -452,19 +455,17 @@ export const {
           setStore("reloading", false)
           const resumeSessionID = event.properties.resumeSessionID as string | undefined
           if (resumeSessionID) {
-            setTimeout(() => {
-              sdk.client.session
-                .prompt({
-                  sessionID: resumeSessionID,
-                  parts: [
-                    {
-                      type: "text",
-                      text: "Configuration has been reloaded successfully. Continue where you left off.",
-                    },
-                  ],
-                })
-                .catch(() => {})
-            }, 2000)
+            sdk.client.session
+              .prompt({
+                sessionID: resumeSessionID,
+                parts: [
+                  {
+                    type: "text",
+                    text: "Configuration has been reloaded successfully. Continue where you left off.",
+                  },
+                ],
+              })
+              .catch(() => {})
           }
           break
         }
@@ -477,6 +478,7 @@ export const {
     async function bootstrap(input: { fatal?: boolean } = {}) {
       const fatal = input.fatal ?? true
       const workspace = project.workspace.current()
+      const cycle = bootstrapCycle
       const projectPromise = project.sync()
       const sessionListPromise = projectPromise.then(() => listSessions())
 
@@ -542,6 +544,11 @@ export const {
         })
         .then(() => {
           if (store.status !== "complete") setStore("status", "partial")
+          // Signal the worker that bootstrap is done so any pending
+          // reload can proceed. The blocking phase (providers, agents,
+          // config) is sufficient for sessions to resume. MCP and other
+          // non-blocking work continues in the background.
+          sdk.fetch(`${sdk.url}/config/bootstrap-complete?cycle=${cycle}`, { method: "POST" }).catch(() => {})
           // non-blocking
           void Promise.all([
             ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
@@ -564,6 +571,8 @@ export const {
           })
         })
         .catch(async (e) => {
+          // Release the reload blocker even on failure so the modal cannot get stuck forever.
+          sdk.fetch(`${sdk.url}/config/bootstrap-complete?cycle=${cycle}`, { method: "POST" }).catch(() => {})
           console.error("tui bootstrap failed", {
             error: e instanceof Error ? e.message : String(e),
             name: e instanceof Error ? e.name : undefined,

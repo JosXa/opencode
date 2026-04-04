@@ -4,11 +4,19 @@ import { Provider } from "@/provider/provider"
 import { HttpApi, HttpApiEndpoint, HttpApiError, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
-import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
+import {
+  WorkspaceRoutingMiddleware,
+  WorkspaceRoutingQuery,
+  WorkspaceRoutingQueryFields,
+} from "../middleware/workspace-routing"
 import { described } from "./metadata"
 import { Schema } from "effect"
 
 const root = "/config"
+const BootstrapCompleteQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  cycle: Schema.optional(Schema.NumberFromString),
+})
 
 export const ConfigApi = HttpApi.make("config")
   .add(
@@ -61,6 +69,17 @@ export const ConfigApi = HttpApi.make("config")
             summary: "Reload configuration",
             description:
               "Reload all configuration files (opencode.jsonc, .opencode/) and plugins, and restart all instances without restarting the TUI.",
+          }),
+        ),
+        HttpApiEndpoint.post("bootstrapComplete", `${root}/bootstrap-complete`, {
+          query: BootstrapCompleteQuery,
+          success: described(Schema.Struct({ success: Schema.Boolean }), "Blocker released"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "config.bootstrapComplete",
+            summary: "Signal TUI bootstrap complete",
+            description:
+              "Called by the TUI after its blocking bootstrap phase finishes. Releases the reload blocker so any pending reload can proceed.",
           }),
         ),
       )

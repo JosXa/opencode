@@ -35,6 +35,19 @@ export const configHandlers = HttpApiBuilder.group(InstanceHttpApi, "config", (h
       return { success: true, immediate: result.immediate }
     })
 
-    return handlers.handle("get", get).handle("update", update).handle("providers", providers).handle("reload", reload)
+    const bootstrapComplete = Effect.fn("ConfigHttpApi.bootstrapComplete")(function* (ctx) {
+      if (ctx.query.cycle !== undefined && ctx.query.cycle !== ConfigReload.getBootstrapCycle()) {
+        return { success: false }
+      }
+      ConfigReload.finishBlocker("tui-bootstrap")
+      return { success: true }
+    })
+
+    return handlers
+      .handle("get", get)
+      .handle("update", update)
+      .handle("providers", providers)
+      .handle("reload", reload)
+      .handle("bootstrapComplete", bootstrapComplete)
   }),
 )

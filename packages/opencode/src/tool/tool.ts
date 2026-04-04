@@ -2,7 +2,6 @@ import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Effect, Schema } from "effect"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import type { JSONSchema7 } from "@ai-sdk/provider"
-import type { MessageV2 } from "../session/message-v2"
 import type { Permission } from "../permission"
 import type { SessionID, MessageID } from "../session/schema"
 import * as Truncate from "./truncate"
@@ -49,6 +48,8 @@ export interface ExecuteResult<M extends Metadata = Metadata> {
   title: string
   metadata: M
   output: string
+  /** When true, the session stops after this tool call without another LLM turn. */
+  stopSession?: boolean
   attachments?: Omit<SessionV1.FilePart, "id" | "sessionID" | "messageID">[]
 }
 

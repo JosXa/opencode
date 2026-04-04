@@ -1,6 +1,7 @@
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { GlobalBus } from "@/bus/global"
+import { ConfigReload } from "@/config/reload"
 import { EventV2 } from "@opencode-ai/core/event"
 import { Effect, Queue } from "effect"
 import * as Stream from "effect/Stream"
@@ -67,8 +68,9 @@ function eventResponse(events: EventV2.Interface) {
     )
 
     yield* Effect.logInfo("event connected")
+    ConfigReload.startBlocker("tui-bootstrap")
     return HttpServerResponse.stream(
-      Stream.make({ id: eventID(), type: "server.connected", properties: {} }).pipe(
+      Stream.make({ id: eventID(), type: "server.connected", properties: { bootstrapCycle: ConfigReload.getBootstrapCycle() } }).pipe(
         Stream.concat(output.pipe(Stream.merge(heartbeat, { haltStrategy: "left" }))),
         Stream.map(eventData),
         Stream.pipeThroughChannel(Sse.encode()),

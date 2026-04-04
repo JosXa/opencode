@@ -2,10 +2,11 @@ import { Config } from "./config"
 import { Log } from "../util/log"
 import { GlobalBus } from "../bus/global"
 import { AppRuntime } from "../effect/app-runtime"
-
-const log = Log.create({ service: "config.reload" })
+import { disposeAllInstancesAndEmitGlobalDisposed } from "../server/global-lifecycle"
 
 export namespace ConfigReload {
+  const log = Log.create({ service: "config.reload" })
+
   export const Event = {
     Pending: { type: "config.reload.pending" },
     Executing: { type: "config.reload.executing" },
@@ -14,7 +15,16 @@ export namespace ConfigReload {
 
   let pending = false
   let resumeSessionID: string | undefined
+  let reloadInFlight = false
+  let doneResumeSessionID: string | undefined
   const active = new Set<string>()
+  const blockers = new Set<string>()
+  /** Rejects stale bootstrap-complete POSTs from a previous reload cycle. */
+  let bootstrapCycle = 0
+
+  function isBlocked() {
+    return active.size > 0 || blockers.size > 0
+  }
 
   export function isPending() {
     return pending
@@ -22,43 +32,66 @@ export namespace ConfigReload {
 
   export function start(sessionID: string) {
     active.add(sessionID)
+    log.debug("start", { sessionID })
   }
 
   export function finish(sessionID: string) {
     active.delete(sessionID)
+    log.debug("finish", { sessionID })
+    finishReloadIfReady("last session finished")
+  }
+
+  export function startBlocker(blockerID: string) {
+    blockers.add(blockerID)
+    if (blockerID === "tui-bootstrap") bootstrapCycle++
+    log.debug("startBlocker", { blockerID, bootstrapCycle })
+  }
+
+  export function getBootstrapCycle() {
+    return bootstrapCycle
+  }
+
+  export function finishBlocker(blockerID: string) {
+    blockers.delete(blockerID)
+    log.debug("finishBlocker", { blockerID })
+    finishReloadIfReady("bootstrap complete")
+
+    if (!pending || isBlocked()) return
+    queueMicrotask(() => {
+      void check().catch((error) => {
+        log.error("deferred blocker check failed", { error, blockerID })
+      })
+    })
   }
 
   /**
    * Request a config reload. If all sessions are idle, reloads immediately.
    * Otherwise queues the reload to fire when the last session goes idle.
-   *
-   * @param options.resumeSessionID - If set, the TUI will auto-resume this
-   *   session after reload completes. Only the ReloadTool should set this.
    */
   export async function request(options?: { resumeSessionID?: string }): Promise<{ immediate: boolean }> {
-    // Only set resumeSessionID if explicitly provided (i.e. from ReloadTool).
-    // Slash command / command palette calls without it, ensuring no auto-resume.
-    if (options?.resumeSessionID) {
-      resumeSessionID = options.resumeSessionID
-    }
-    if (active.size === 0) {
+    if (options?.resumeSessionID) resumeSessionID = options.resumeSessionID
+    if (!isBlocked()) {
+      log.info("reload executing immediately")
       await execute()
       return { immediate: true }
     }
-    log.info("sessions busy, deferring reload")
     pending = true
+    log.info("reload queued", { resumeSessionID })
     emit(Event.Pending.type, { pending: true })
     return { immediate: false }
   }
 
-  /**
-   * Called from Runner.onIdle - checks if a deferred reload is pending
-   * and all sessions are now idle. If so, fires the reload.
-   */
+  /** Called from idle/blocker transitions to run a deferred reload once safe. */
   export async function check() {
     if (!pending) return
-    if (active.size > 0) return
-    log.info("all sessions idle, executing deferred reload")
+    if (isBlocked()) {
+      log.debug("check: still blocked", {
+        active: [...active],
+        blockers: [...blockers],
+      })
+      return
+    }
+    log.info("executing deferred reload")
     await execute()
   }
 
@@ -66,15 +99,37 @@ export namespace ConfigReload {
     pending = false
     emit(Event.Pending.type, { pending: false })
     emit(Event.Executing.type, { executing: true })
-    log.info("reloading configuration")
-    // Config.invalidate destroys config caches in the current runtime. The
-    // instance Bus is replaced separately by the reload flow, so Done goes via
-    // GlobalBus where existing SSE subscriptions can still observe it.
-    // Emit Done through GlobalBus so existing SSE subscriptions can observe it
-    // even if config invalidation rebuilds instance-scoped services.
-    await AppRuntime.runPromise(Config.Service.use((cfg) => cfg.invalidate()))
     const sid = resumeSessionID
     resumeSessionID = undefined
+
+    // The old instance is about to be destroyed. New sessions/blockers will
+    // register against the next instance cycle and release the Done event.
+    active.clear()
+    blockers.clear()
+    reloadInFlight = true
+    doneResumeSessionID = sid
+    log.info("reloading configuration", { resumeSessionID: sid })
+
+    // The caller may be interrupted during instance disposal, so do not depend
+    // on awaiting this chain. bootstrap-complete emits Done after the new TUI
+    // has enough state to hide the reload modal and optionally resume.
+    AppRuntime.runPromise(Config.Service.use((cfg) => cfg.invalidate()))
+      .then(() => AppRuntime.runPromise(disposeAllInstancesAndEmitGlobalDisposed({ swallowErrors: true })))
+      .catch((error) => {
+        reloadInFlight = false
+        doneResumeSessionID = undefined
+        emit(Event.Executing.type, { executing: false })
+        log.error("reload failed", { error })
+      })
+  }
+
+  function finishReloadIfReady(reason: string) {
+    if (!reloadInFlight || isBlocked()) return
+    reloadInFlight = false
+    const sid = doneResumeSessionID
+    doneResumeSessionID = undefined
+    log.info("reload done", { reason, resumeSessionID: sid })
+    emit(Event.Executing.type, { executing: false })
     emit(Event.Done.type, { resumeSessionID: sid })
   }
 

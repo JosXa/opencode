@@ -349,7 +349,13 @@ export const layer = Layer.effect(
 
       const toolResultOutput = (
         value: Extract<StreamEvent, { type: "tool-result" }>,
-      ): { title: string; metadata: Record<string, any>; output: string; attachments?: SessionV1.FilePart[] } => {
+      ): {
+        title: string
+        metadata: Record<string, any>
+        output: string
+        attachments?: SessionV1.FilePart[]
+        stopSession?: boolean
+      } => {
         if (isRecord(value.result.value) && typeof value.result.value.output === "string") {
           return {
             title: typeof value.result.value.title === "string" ? value.result.value.title : value.name,
@@ -358,6 +364,7 @@ export const layer = Layer.effect(
             attachments: Array.isArray(value.result.value.attachments)
               ? value.result.value.attachments.filter(isFilePart)
               : undefined,
+            stopSession: value.result.value.stopSession === true,
           }
         }
         return {
@@ -643,6 +650,9 @@ export const layer = Layer.effect(
                 })
             }
             yield* completeToolCall(value.id, output)
+            if (output.stopSession) {
+              ctx.blocked = true
+            }
             return
           }
 

@@ -17,10 +17,9 @@ export const ReloadTool = Tool.define("reload_config", {
 
     return {
       title: "Configuration reload enqueued",
-      output:
-        "Reload enqueued. It will execute once this session goes idle. " +
-        "End your turn now so the reload can proceed. The conversation resumes automatically.",
+      output: "Reload enqueued. The session will stop now and resume automatically after reload.",
       metadata: {},
+      stopSession: true,
     }
   },
 })

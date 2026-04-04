@@ -183,6 +183,21 @@ it.instance("resolves attention config defaults and overrides", () =>
   ),
 )
 
+it.instance("accepts input_quote_selection keybind", () =>
+  withCleanState(
+    Effect.gen(function* () {
+      const fs = yield* FSUtil.Service
+      const test = yield* TestInstance
+      yield* fs.writeJson(path.join(test.directory, "tui.json"), {
+        keybinds: { input_quote_selection: "ctrl+q" },
+      })
+
+      const config = yield* getTuiConfig(test.directory)
+      expect(config.keybinds.get("prompt.quote_selection")?.[0]?.key).toBe("ctrl+q")
+    }),
+  ),
+)
+
 it.instance("migrates tui-specific keys from opencode.json when tui.json does not exist", () =>
   withCleanState(
     Effect.gen(function* () {
@@ -194,7 +209,6 @@ it.instance("migrates tui-specific keys from opencode.json when tui.json does no
         tui: { scroll_speed: 5 },
         keybinds: { app_exit: "ctrl+q" },
       })
-
       const config = yield* getTuiConfig(test.directory)
       expect(config.theme).toBe("migrated-theme")
       expect(config.scroll_speed).toBe(5)

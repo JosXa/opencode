@@ -61,7 +61,7 @@ import { TuiConfig } from "@/cli/cmd/tui/config/tui"
 import { createTuiApi, TuiPluginRuntime, type RouteMap } from "./plugin"
 import { FormatError, FormatUnknownError } from "@/cli/error"
 import { InputBuffer } from "@tui/util/input-buffer"
-import { Log } from "@/util/log"
+import * as Log from "@/util/log"
 
 const log = Log.create({ service: "tui-app" })
 

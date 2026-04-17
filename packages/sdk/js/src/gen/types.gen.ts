@@ -2602,6 +2602,7 @@ export type SessionPromptData = {
     tools?: {
       [key: string]: boolean
     }
+    interrupt?: boolean
     parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
   }
   path: {

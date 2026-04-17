@@ -5729,6 +5729,29 @@ export type ConfigReloadResponses = {
 }
 
 export type ConfigReloadResponse = ConfigReloadResponses[keyof ConfigReloadResponses]
+
+export type ConfigBootstrapCompleteData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+    cycle?: number
+  }
+  url: "/config/bootstrap-complete"
+}
+
+export type ConfigBootstrapCompleteResponses = {
+  /**
+   * Blocker released
+   */
+  200: {
+    success: boolean
+  }
+}
+
+export type ConfigBootstrapCompleteResponse = ConfigBootstrapCompleteResponses[keyof ConfigBootstrapCompleteResponses]
+
 export type ToolListData = {
   body?: never
   path?: never
@@ -7925,6 +7948,10 @@ export type SessionPromptData = {
     format?: OutputFormat
     system?: string
     variant?: string
+    /**
+     * Interrupt any active run for this session before starting the next reply.
+     */
+    interrupt?: boolean
     parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
   }
   path: {
@@ -8272,6 +8299,10 @@ export type SessionPromptAsyncData = {
     format?: OutputFormat
     system?: string
     variant?: string
+    /**
+     * Interrupt any active run for this session before starting the next reply.
+     */
+    interrupt?: boolean
     parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
   }
   path: {

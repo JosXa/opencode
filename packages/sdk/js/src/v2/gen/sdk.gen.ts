@@ -18,6 +18,7 @@ import type {
   CommandListErrors,
   CommandListResponses,
   Config as Config3,
+  ConfigBootstrapCompleteResponses,
   ConfigGetErrors,
   ConfigGetResponses,
   ConfigProvidersErrors,
@@ -1510,6 +1511,38 @@ export class Config2 extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<ConfigReloadResponses, unknown, ThrowOnError>({
       url: "/config/reload",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Signal TUI bootstrap complete
+   *
+   * Called by the TUI after its blocking bootstrap phase finishes. Releases the reload blocker so any pending reload can proceed.
+   */
+  public bootstrapComplete<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      cycle?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "cycle" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ConfigBootstrapCompleteResponses, unknown, ThrowOnError>({
+      url: "/config/bootstrap-complete",
       ...options,
       ...params,
     })
@@ -3769,6 +3802,7 @@ export class Session2 extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
+      interrupt?: boolean
       parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
@@ -3789,6 +3823,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "format" },
             { in: "body", key: "system" },
             { in: "body", key: "variant" },
+            { in: "body", key: "interrupt" },
             { in: "body", key: "parts" },
           ],
         },
@@ -4122,6 +4157,7 @@ export class Session2 extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
+      interrupt?: boolean
       parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
@@ -4142,6 +4178,7 @@ export class Session2 extends HeyApiClient {
             { in: "body", key: "format" },
             { in: "body", key: "system" },
             { in: "body", key: "variant" },
+            { in: "body", key: "interrupt" },
             { in: "body", key: "parts" },
           ],
         },

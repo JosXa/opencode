@@ -106,6 +106,7 @@ export const layer = Layer.effect(
     const greptool = yield* GrepTool
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
+    const reloadtool = yield* ReloadTool
     const agent = yield* Agent.Service
 
     const state = yield* InstanceState.make<State>(
@@ -213,7 +214,7 @@ export const layer = Layer.effect(
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
           plan: Tool.init(plan),
-          reload: Tool.init(ReloadTool),
+          reload: Tool.init(reloadtool),
         })
 
         return {

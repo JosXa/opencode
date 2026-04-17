@@ -1,25 +1,30 @@
 import z from "zod"
-import { Tool } from "./tool"
+import { Effect } from "effect"
+import * as Tool from "./tool"
 import { ConfigReload } from "@/config/reload"
 
-export const ReloadTool = Tool.define("reload_config", {
-  description: "Reload OpenCode configuration files and plugins without restarting.",
-  parameters: z.object({}),
-  async execute(_params, ctx) {
-    await ctx.ask({
-      permission: "reload_config",
-      patterns: ["*"],
-      always: ["*"],
-      metadata: {},
-    })
+export const ReloadTool = Tool.define(
+  "reload_config",
+  Effect.succeed({
+    description: "Reload OpenCode configuration files and plugins without restarting.",
+    parameters: z.object({}),
+    execute: (_params: {}, ctx: Tool.Context) =>
+      Effect.gen(function* () {
+        yield* ctx.ask({
+          permission: "reload_config",
+          patterns: ["*"],
+          always: ["*"],
+          metadata: {},
+        })
 
-    await ConfigReload.request({ resumeSessionID: ctx.sessionID })
+        yield* Effect.promise(() => ConfigReload.request({ resumeSessionID: ctx.sessionID }))
 
-    return {
-      title: "Configuration reload enqueued",
-      output: "Reload enqueued. The session will stop now and resume automatically after reload.",
-      metadata: {},
-      stopSession: true,
-    }
-  },
-})
+        return {
+          title: "Configuration reload enqueued",
+          output: "Reload enqueued. The session will stop now and resume automatically after reload.",
+          metadata: {},
+          stopSession: true,
+        }
+      }),
+  }),
+)

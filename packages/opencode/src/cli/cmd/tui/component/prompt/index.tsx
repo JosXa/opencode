@@ -710,7 +710,7 @@ export function Prompt(props: PromptProps) {
           sessionID,
           command: commandName,
           arguments: args,
-          agent: local.agent.current().name,
+          agent: agent.name,
           model: `${selectedModel.providerID}/${selectedModel.modelID}`,
           messageID,
           variant,
@@ -875,6 +875,7 @@ export function Prompt(props: PromptProps) {
       return `Run a command... "${example}"`
     }
     const agent = local.agent.current()
+    if (!agent) return undefined
     const hint = (agent.description || agent.prompt || "").trim()
     if (agent.name !== "build" && hint) return hint.replace(/\s+/g, " ")
     if (!list().length) return undefined

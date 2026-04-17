@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import path from "path"
+import { AppRuntime } from "../../src/effect/app-runtime"
 import { Instance } from "../../src/project/instance"
 import { Server } from "../../src/server/server"
-import { Log } from "../../src/util/log"
+import * as Log from "../../src/util/log"
 import { SessionPrompt } from "../../src/session/prompt"
 import { SessionStatus } from "../../src/session/status"
 import { Session } from "../../src/session"
@@ -21,7 +22,7 @@ describe("config.reload", () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
-        const app = Server.Default()
+        const { app } = Server.Default()
 
         const response = await app.request("/config/reload", {
           method: "POST",
@@ -38,7 +39,7 @@ describe("config.reload", () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
-        const app = Server.Default()
+        const { app } = Server.Default()
 
         const response = await app.request("/config/reload", {
           method: "POST",
@@ -53,19 +54,19 @@ describe("config.reload", () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
-        const session = await Session.create({})
+        const session = await AppRuntime.runPromise(Session.Service.use((svc) => svc.create({})))
 
         // Session starts idle
-        const status = await SessionStatus.get(session.id)
-        expect(status?.type).toBe("idle")
+        const status = await AppRuntime.runPromise(SessionStatus.Service.use((svc) => svc.get(session.id)))
+        expect(status.type).toBe("idle")
 
-        const app = Server.Default()
+        const { app } = Server.Default()
         const response = await app.request("/config/reload", {
           method: "POST",
         })
         expect(response.status).toBe(200)
 
-        await Session.remove(session.id)
+        await AppRuntime.runPromise(Session.Service.use((svc) => svc.remove(session.id)))
       },
     })
   })
@@ -89,9 +90,9 @@ describe("SessionPrompt.cancel", () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
-        const session = await Session.create({})
-        await SessionPrompt.cancel(session.id)
-        const status = await SessionStatus.get(session.id)
+        const session = await AppRuntime.runPromise(Session.Service.use((svc) => svc.create({})))
+        await AppRuntime.runPromise(SessionPrompt.Service.use((svc) => svc.cancel(session.id)))
+        const status = await AppRuntime.runPromise(SessionStatus.Service.use((svc) => svc.get(session.id)))
         expect(status.type).toBe("idle")
       },
     })
